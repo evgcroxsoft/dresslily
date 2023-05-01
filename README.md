@@ -20,7 +20,8 @@ Selenium, Helium, Playwright, Requests*
     - [5. Activate virtual environment:](#5-activate-virtual-environment)
     - [6. Upgrade pip and install requirements.txt:](#6-upgrade-pip-and-install-requirementstxt)
     - [7. Change directory:](#7-change-directory)
-    - [8. Launch scrapy:](#8-launch-scrapy)
+    - [8. Launch splash:](#8-launch-splash)
+    - [9. Launch scrapy:](#9-launch-scrapy)
   - [Scraped](#scraped)
     - [Items:](#items)
     - [Review:](#review)
@@ -58,7 +59,11 @@ pip install -r requirements.txt
 ```
 cd dresslily
 ```
-### 8. Launch scrapy:
+### 8. Launch splash:
+```
+docker run -p 8050:8050 --memory=1G --restart=always scrapinghub/splash --disable-private-mode --max-timeout 3600
+```
+### 9. Launch scrapy:
 ```
 python3 main.py
 ```
