@@ -1,21 +1,8 @@
+import requests
 import scrapy
 from scrapy.loader import ItemLoader
-
 from dresslily.items.review import ReviewItem
-from dresslily.items.service import convert_starts_to_rating
-
-
-lua_script = """
-function main(splash, args)
-    assert(splash:go(args.url))
-
-    local element = splash:select('a.site-pager-next')
-    element:click()
-
-    splash:wait(splash.args.wait)
-    return splash:html()
-end
-"""
+from dresslily.settings import HEADERS
 
 
 class ReviewSpider(scrapy.Spider):
@@ -28,35 +15,35 @@ class ReviewSpider(scrapy.Spider):
         }
 
     def parse(self, response):
-
         links = response.css('a.js-picture.js_logsss_click_delegate_ps.twoimgtip.category-good-picture-link::attr(href)').getall()
         for link in links:
-            yield scrapy.Request(url=link, callback=self.parse_hoody, 
-                                meta={'splash': {'args': {'wait': 2.5,},'endpoint': 'render.html'}})         
+            yield scrapy.Request(url=link, callback=self.parse_hoody)
 
         next_page = response.xpath("//a[contains(.//text(), '>')]").attrib['href']
         if next_page is not None:
             yield response.follow(next_page, callback=self.parse)
 
+    def get_pages(self, id, page = 1):
+        url = f'https://www.dresslily.com/m-review-a-view_review_list-goods_id-{id}-page-{page}'
+        r = requests.get(url=url, headers=HEADERS)
+        reviews = r.json()
+        return reviews
+
     def parse_hoody(self, response):
-        reviews = response.css('div.reviewinfo.table')
-        for review in reviews:
-            product_id = response.css('em.sku-show').get()
-            stars = response.css('span.review-star i::attr(style)').getall()
-            
-            l = ItemLoader(item = ReviewItem(), selector=review)
+        id = response.css('#hidden-goodsId::attr(value)').get()
+        if self.get_pages(id):
+            total_pages = self.get_pages(id)['data']['page_count']
+            for page in range(0, total_pages):
+                reviews = self.get_pages(id, page)['data']['review']['review_list']
+                for review in reviews:
+                    product_id = response.css('em.sku-show').get()
+                    l = ItemLoader(item = ReviewItem(), selector=review)
 
-            l.add_value('product_id', product_id)
-            l.add_value('rating', convert_starts_to_rating(stars))
-            l.add_css('timestamp', 'span.review-time')
-            l.add_css('text', 'div.review-content-text')
-            l.add_xpath('size', "//span[@class='review-good-size'][contains(text(), 'Size:')]")
-            l.add_xpath('color', "//span[@class='review-good-size'][contains(text(), 'Color:')]")
+                    l.add_value('product_id', product_id)
+                    l.add_value('rating', review['rate_overall'])
+                    l.add_value('timestamp', review['adddate'])
+                    l.add_value('text', review['pros'])
+                    l.add_value('size', review['review_size']['overall_fit'])
+                    l.add_value('color', review['goods']['color'])
 
-            yield l.load_item()
-
-        next_page = response.css('a.site-pager-next::attr(href)').get()
-
-        if next_page is not None:
-            yield scrapy.Request(url=response.url, callback=self.parse_hoody,
-                                meta={'splash': {'endpoint': 'execute', 'args': {'wait': 1, 'lua_source':lua_script, 'url':response.url},}})
+                    yield l.load_item()
