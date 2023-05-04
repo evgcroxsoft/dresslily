@@ -61,7 +61,7 @@ cd dresslily
 ```
 ### 8. Launch splash:
 ```
-docker run -p 8050:8050 --memory=1G --restart=always scrapinghub/splash --disable-private-mode --max-timeout 3600
+docker run -p 8050:8050 --memory=1G --restart=always scrapinghub/splash --max-timeout 3600
 ```
 ### 9. Launch scrapy:
 ```
