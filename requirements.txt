@@ -1,3 +1,4 @@
 scrapy
 scrapy-fake-useragent
 scrapy_splash
+scrapy-inline-requests
